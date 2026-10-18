@@ -129,9 +129,9 @@ footer a{color:inherit}
 <header>
   <div>
     <p class="eyebrow">Pen FT · ME Super · Q-S1 · GH5 · Beaulieu 4008 · 5008 S</p>
-    <h1>Six cameras, <span>319</span> real photos and films.</h1>
+    <h1>Six cameras, <span id="total">423</span> real photos and films.</h1>
   </div>
-  <p class="intro">Every photo and video was shot on one of these cameras and posted to Flickr or Vimeo, labeled with the <strong>lens</strong> and <strong>film</strong> its photographer listed. Pick a camera, a lens, a kind of shot, a film stock or videos only, and switch on the <strong>rule-of-thirds grid</strong> to see how each frame is put together.</p>
+  <p class="intro">Every photo and video was shot on one of these cameras and posted to Flickr or Vimeo, labeled with the <strong>lens</strong> and <strong>film</strong> its photographer listed. Pick a camera, a lens, a filter, a kind of shot, a film stock or videos only, and switch on the <strong>rule-of-thirds grid</strong> to see how each frame is put together.</p>
 </header>
 
 <div class="cams" id="cams">
@@ -207,6 +207,7 @@ footer a{color:inherit}
   <div class="frow" role="group" aria-label="Camera"><span class="flabel">Camera</span><div class="chips" id="fc-cam"></div></div>
   <div class="frow" role="group" aria-label="Lens"><span class="flabel">Lens</span><div class="chips" id="fc-lens"></div></div>
   <div class="frow" role="group" aria-label="Type of photo"><span class="flabel">Type</span><div class="chips" id="fc-genre"></div></div>
+  <div class="frow" role="group" aria-label="Filter"><span class="flabel">Filter</span><div class="chips" id="fc-flt"></div></div>
   <div class="frow" role="group" aria-label="Format"><span class="flabel">Format</span><div class="chips" id="fc-fmt"></div></div>
   <div class="frow"><label class="flabel" for="f-film">Film</label><select id="f-film"></select>
     <button type="button" class="toggle" id="f-thirds" aria-pressed="false"><span class="sw" aria-hidden="true"></span>Rule of thirds</button>
@@ -259,11 +260,12 @@ footer a{color:inherit}
 <script src="data/photos-2.js"></script>
 <script src="data/photos-3.js"></script>
 <script src="data/extra-videos.js"></script>
+<script src="data/filters.js"></script>
 <script>
-const PHOTOS = window.PHOTOS.concat(window.EXTRA||[]);
+const PHOTOS = window.PHOTOS.concat(window.EXTRA||[], window.FILTERS||[]);
 PHOTOS.forEach(p=>{ if (p.cam==='beaulieu' && /5008/.test(p.body)){ p.cam='b5008'; if(!['optivaron','anamorphic'].includes(p.lg)) p.lg='other'; p.lk='b5008:'+p.lg; } });
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const CAMS = [['penft','Pen FT'],['mesuper','ME Super'],['q','Q-S1'],['gh5','GH5'],['beaulieu','4008'],['b5008','5008 S']];
+const CAMS = [['penft','Pen FT'],['mesuper','ME Super'],['q','Q-S1'],['gh5','GH5'],['beaulieu','4008'],['b5008','5008 S'],['other','Other cameras']];
 const LENSES = {
   penft: [
     ['38','38mm','F.Zuiko 38mm f/1.8','The standard kit lens. Common and cheap, sharp from about f/4. The 38mm f/3.5 macro is grouped here too.'],
@@ -305,14 +307,18 @@ const LENSES = {
   b5008: [
     ['optivaron','Optivaron zoom','Schneider Optivaron 6-66mm f/1.8 or 6-70mm f/1.4','The stock zooms. The f/1.4 version is the brighter, later one.'],
     ['anamorphic','Anamorphic adapter','Anamorphic adapter + adapted lenses','Proskar 2x in front of a Jupiter-11 135mm or Mir-1 37mm on a C-mount adapter.'],
-    ['other','Lens not stated','Lens not stated','5008 footage where the lens wasn\u2019t named.']]
+    ['other','Lens not stated','Lens not stated','5008 footage where the lens wasn\u2019t named.']],
+  other: [
+    ['other','Various','Various cameras and lenses','Filter examples from cameras outside this lineup, used where nobody posted one from a matching camera.']]
 };
 const GENRES = ['Portrait','Street','Landscape','Architecture','Close-up','Still life','Low light','Animals','Cars','Stabilized'];
+const FLTS = [['polarizer','Polarizer'],['nd','ND'],['red','Red'],['orange','Orange'],['yellow','Yellow'],['promist','Pro-Mist'],['streak','Streak'],['prism','Prism'],['grad','Graduated'],['stocking','Stocking'],['closeup','Close-up'],['ir','Infrared'],['star','Star']];
+const FLTNAME = Object.fromEntries(FLTS);
 const FMTS = [['pair','Two in one frame'],['single','Single frames'],['short','Short films'],['video','Tests and clips']];
 const EMBED = true;
 const lensName = p => (LENSES[p.cam].find(l=>l[0]===p.lg)||[])[1] || '';
 PHOTOS.forEach(p => { p.kind = p.kind || 'photo'; p.fmt = p.short ? 'short' : p.kind==='video' ? 'video' : p.pair ? 'pair' : 'single'; p.filmKey = p.film || 'Not listed'; });
-const state = { cam:'all', lens:'all', genre:'all', fmt:'all', film:'all', thirds:false };
+const state = { cam:'all', lens:'all', genre:'all', flt:'all', fmt:'all', film:'all', thirds:false };
 const shortLens = l => (l.match(/\d+(?:\.\d+)?(?:-\d+(?:\.\d+)?)?mm(?: f\/[\d.]+(?:-[\d.]+)?)?/)||[l])[0];
 
 function thirdsMarkup(p){
@@ -321,15 +327,15 @@ function thirdsMarkup(p){
   return `<span class="thirds ${split}"><i></i><i></i></span>`;
 }
 function card(p, i){
-  const meta = [p.body, p.lens ? shortLens(p.lens) : '', p.film].filter(Boolean).join(' · ');
+  const meta = [p.body, p.lens ? shortLens(p.lens) : '', p.flt ? FLTNAME[p.flt]+' filter' : '', p.film].filter(Boolean).join(' · ');
   const play = p.kind==='video' ? `<span class="play" aria-hidden="true"><i></i>${p.dur?esc(p.dur):''}</span>` : '';
   return `<button class="shot" type="button" data-i="${i}">
     <span class="frame"><img src="${p.src}" width="${p.w}" height="${p.h}" loading="lazy" alt="${esc(p.t)}, by ${esc(p.by)}${p.kind==='video'?', video':''}">${thirdsMarkup(p)}${play}</span>
     <span class="cap"><span><b>${esc(p.t)}</b><span class="meta">${esc(meta)}${p.expo?' · '+esc(p.expo):''}</span><span class="genres">${p.genres.map(esc).join(' · ')}</span></span><small title="${esc(p.by)}">${esc(p.by)}</small></span>
   </button>`;
 }
-const test = { cam:(p,v)=>p.cam===v, lens:(p,v)=>p.lk===v, genre:(p,v)=>p.genres.includes(v), fmt:(p,v)=>p.fmt===v, film:(p,v)=>p.filmKey===v };
-const match = (p, skip) => ['cam','lens','genre','fmt','film'].every(k => k===skip || state[k]==='all' || test[k](p,state[k]));
+const test = { cam:(p,v)=>p.cam===v, lens:(p,v)=>p.lk===v, genre:(p,v)=>p.genres.includes(v), flt:(p,v)=>p.flt===v, fmt:(p,v)=>p.fmt===v, film:(p,v)=>p.filmKey===v };
+const match = (p, skip) => ['cam','lens','genre','flt','fmt','film'].every(k => k===skip || state[k]==='all' || test[k](p,state[k]));
 
 function chips(el, key, opts){
   el.innerHTML = [['all','All']].concat(opts).map(([v,label]) => {
@@ -351,7 +357,7 @@ function lensCards(){
     row.innerHTML = ''; row.hidden = true; return;
   }
   row.hidden = false;
-  sub.textContent = {penft:'All three fast lenses frame about like a 55 to 60mm on regular 35mm. Tap a lens to see only its photos.', mesuper:'Full-frame 35mm, so focal lengths mean what they say. Tap a lens to see only its photos.', gh5:'Micro Four Thirds crops 2x; your Lens Turbo II takes that back to about 1.4x and adds a stop. Equivalents below are full-frame. Tap a lens to filter.', beaulieu:'Super 8 crops about 6x against full frame, so blur comes from long lenses, wide apertures and, best of all, a DOF adapter. Tap a lens to filter.', b5008:'Same Super 8 frame and C-mount as the 4008, so the same lenses and tricks apply. Tap a lens to filter.', q:'The Q-S1 sensor crops about 4.6x, so equivalents below are for the Q-S1 and Q7. Tap a lens to see only its photos.'}[state.cam];
+  sub.textContent = {penft:'All three fast lenses frame about like a 55 to 60mm on regular 35mm. Tap a lens to see only its photos.', mesuper:'Full-frame 35mm, so focal lengths mean what they say. Tap a lens to see only its photos.', gh5:'Micro Four Thirds crops 2x; your Lens Turbo II takes that back to about 1.4x and adds a stop. Equivalents below are full-frame. Tap a lens to filter.', beaulieu:'Super 8 crops about 6x against full frame, so blur comes from long lenses, wide apertures and, best of all, a DOF adapter. Tap a lens to filter.', other:'Filter examples from other cameras, used where nobody posted one from a camera above. Tap to filter.', b5008:'Same Super 8 frame and C-mount as the 4008, so the same lenses and tricks apply. Tap a lens to filter.', q:'The Q-S1 sensor crops about 4.6x, so equivalents below are for the Q-S1 and Q7. Tap a lens to see only its photos.'}[state.cam];
   row.innerHTML = LENSES[state.cam].map(([k,,name,note,yours]) => {
     const key = state.cam+':'+k, n = PHOTOS.filter(p=>p.lk===key).length;
     const badge = yours==='yours' ? '<span class="yours">You have this</span>' : yours==='want' ? '<span class="yours want">On your list</span>' : '';
@@ -379,7 +385,9 @@ function render(){
   if (state.cam==='all') lensEl.innerHTML = '<span class="hint">Pick a camera first. Each one has its own lenses.</span>';
   else chips(lensEl,'lens',LENSES[state.cam].map(l=>[state.cam+':'+l[0], l[1]]));
   chips(document.getElementById('fc-genre'),'genre',GENRES.map(g=>[g,g]));
+  chips(document.getElementById('fc-flt'),'flt',FLTS);
   chips(document.getElementById('fc-fmt'),'fmt',FMTS);
+  document.getElementById('total').textContent = PHOTOS.length;
   filmSelect(); lensCards();
   document.querySelectorAll('.cam').forEach(b => b.setAttribute('aria-pressed', String(state.cam===b.dataset.cam)));
   document.querySelectorAll('[data-cn]').forEach(s => { const ps=PHOTOS.filter(p=>p.cam===s.dataset.cn), nv=ps.filter(p=>p.kind==='video').length; s.textContent = [ps.length-nv?`${ps.length-nv} photos`:'', nv?`${nv} videos`:'', 'tap to filter'].filter(Boolean).join(' · '); });
@@ -420,7 +428,7 @@ document.addEventListener('click', e=>{
   const th = document.getElementById('lb-thirds');
   th.outerHTML = thirdsMarkup(p).replace('class="thirds','id="lb-thirds" class="thirds');
   document.getElementById('lb-t').textContent = p.t;
-  document.getElementById('lb-s').textContent = [p.by, p.body, p.lens || 'lens not listed', p.film || 'film not listed', p.expo, p.genres.join(', '), p.pair?'two in one frame':''].filter(Boolean).join(' · ');
+  document.getElementById('lb-s').textContent = [p.by, p.body, p.lens || 'lens not listed', p.flt ? FLTNAME[p.flt]+' filter' : '', p.film || 'film not listed', p.expo, p.genres.join(', '), p.pair?'two in one frame':''].filter(Boolean).join(' · ');
   const a = document.getElementById('lb-a'); a.href = p.url; a.textContent = p.kind==='video' ? `Watch on Vimeo${p.dur?' ('+p.dur+')':''}` : 'Open on Flickr';
   if (lb.showModal) lb.showModal();
 });
